@@ -1,10 +1,10 @@
 tensorflow-cpu==2.18.0
 Flask==3.0.2
 numpy==1.26.4
-librosa==0.9.2  # Downgraded for numba compatibility
+librosa==0.10.1
 soundfile==0.12.1
 scipy==1.13.0
 h5py==3.11.0
 serverless-wsgi==3.0.2
-numba==0.56.4   # Compatible with Python 3.12
-llvmlite==0.39.1  # Pre-built wheels available
+numba==0.59.0
+llvmlite==0.42.0

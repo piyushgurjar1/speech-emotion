@@ -6,49 +6,47 @@ import tensorflow as tf
 
 app = Flask(__name__)
 
-# Optimized model loading
+# Simplified model loading
 model = tf.keras.models.load_model(os.path.join('models', 'speech_emotion_model.h5'))
 
-emotion_mapping = ['angry', 'calm', 'disgust', 'fearful', 'happy', 'neutral', 'sad', 'surprised']
+emotion_labels = ['angry', 'calm', 'disgust', 'fearful', 'happy', 'neutral', 'sad', 'surprised']
 
-def extract_feature(data, sr):
-    """Optimized feature extraction"""
-    # Explicitly use float32 to match training
-    data = data.astype(np.float32)
+def process_audio(data, sr):
+    """Optimized feature extraction with fixed size output"""
+    features = []
     
-    # Compute features directly without intermediate arrays
-    return np.concatenate([
-        np.mean(librosa.feature.mfcc(y=data, sr=sr, n_mfcc=40).T, axis=0),
-        np.mean(librosa.feature.chroma_stft(y=data, sr=sr).T, axis=0),
-        np.mean(librosa.feature.melspectrogram(y=data, sr=sr).T, axis=0)
-    ])[:180]  # Ensure exactly 180 features
+    # MFCC (40 coefficients)
+    mfccs = librosa.feature.mfcc(y=data, sr=sr, n_mfcc=40)
+    features.extend(np.mean(mfccs, axis=1))
+    
+    # Chroma STFT
+    chroma = librosa.feature.chroma_stft(y=data, sr=sr)
+    features.extend(np.mean(chroma, axis=1))
+    
+    # Mel Spectrogram
+    mel = librosa.feature.melspectrogram(y=data, sr=sr)
+    features.extend(np.mean(mel, axis=1))
+    
+    # Ensure exactly 180 features
+    return np.pad(features, (0, 180))[:180]
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    prediction = None
-    if request.method == 'POST':
-        file = request.files.get('audio')
-        if file and file.filename.endswith('.wav'):
+    result = None
+    if request.method == 'POST' and 'audio' in request.files:
+        file = request.files['audio']
+        if file.filename.endswith('.wav'):
             try:
                 # Process audio without saving to disk
-                data, sr = librosa.load(file.stream, sr=None)
-                features = extract_feature(data, sr)
-                
-                # Zero-pad features to ensure 180 dimensions
-                features = np.pad(features, (0, 180))[:180]
-                
-                # Reshape for model input
-                input_data = features.reshape(1, 180, 1).astype(np.float32)
-                
-                # Predict
-                preds = model.predict(input_data)
-                prediction = emotion_mapping[np.argmax(preds)]
-                
+                audio, sr = librosa.load(file.stream, sr=None)
+                features = process_audio(audio, sr)
+                prediction = model.predict(features.reshape(1, 180, 1))
+                result = emotion_labels[np.argmax(prediction)]
             except Exception as e:
-                prediction = f"Error: {str(e)}"
+                result = f"Error: {str(e)}"
     
-    return render_template('index.html', prediction=prediction)
+    return render_template('index.html', prediction=result)
 
 if __name__ == "__main__":
-    True
+    pass
     # app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
