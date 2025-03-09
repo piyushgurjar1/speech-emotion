@@ -3,6 +3,6 @@ Flask==3.0.2
 numpy==1.26.4
 h5py==3.11.0
 soundfile==0.12.1
-librosa==0.10.1 --no-deps  # Critical flag
-scipy==1.13.0 --no-deps    # Critical flag
+librosa==0.10.1
+scipy==1.13.0
 serverless-wsgi==3.0.2
