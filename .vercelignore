@@ -3,7 +3,6 @@
 **/*.pyo
 .DS_Store
 .env
-venv/
-tests/
 *.ipynb
 *.md
+venv/
