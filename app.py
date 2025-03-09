@@ -2,51 +2,39 @@ import os
 import numpy as np
 import librosa
 from flask import Flask, render_template, request
-from tensorflow.python.keras.models import load_model
-
-import tensorflow as tf
+import tensorflow as tf  # Changed import
 
 app = Flask(__name__)
 
-# Custom model loader with proper input shape handling
-def custom_load_model(filepath):
-    # Load model architecture with custom objects
-    with open(filepath, 'r') as f:
-        model = tf.keras.models.load_model(
-            filepath,
-            custom_objects={
-                # 'l1_l2': regularizers.l1_l2,
-                'Adam': tf.keras.optimizers.Adam
-            }
-        )
-    # return load_model(filepath)
-    return model
+# Optimized model loading
+def load_emotion_model():
+    model_path = os.path.join('models', 'speech_emotion_model.h5')
+    return tf.keras.models.load_model(model_path)
 
-# Load model (use absolute path for better reliability)
-MODEL_PATH = os.path.join('models', 'speech_emotion_model.h5')
-model = custom_load_model(MODEL_PATH)
+model = load_emotion_model()
 
-# IMPORTANT: Emotion labels must match LabelEncoder's alphabetical sorting from training
-emotion_mapping = ['angry', 'calm', 'disgust', 'fearful', 'happy', 'neutral', 'sad', 'surprised']
+# Verified emotion mapping order
+emotion_mapping = ['angry', 'calm', 'disgust', 'fearful', 
+                   'happy', 'neutral', 'sad', 'surprised']
 
+# Optimized feature extraction
 def extract_feature(data, sr):
-    """Identical feature extraction to training code"""
-    result = np.array([])
+    features = []
     
-    # MFCC (40 features)
+    # MFCC (librosa 0.10.1 compatible)
     mfccs = np.mean(librosa.feature.mfcc(y=data, sr=sr, n_mfcc=40).T, axis=0)
-    result = np.hstack((result, mfccs))
+    features.extend(mfccs)
     
-    # Chroma (12 features)
+    # Chroma STFT
     stft = np.abs(librosa.stft(data))
     chroma = np.mean(librosa.feature.chroma_stft(S=stft, sr=sr).T, axis=0)
-    result = np.hstack((result, chroma))
+    features.extend(chroma)
     
-    # Mel Spectrogram (128 features)
+    # Mel Spectrogram
     mel = np.mean(librosa.feature.melspectrogram(y=data, sr=sr).T, axis=0)
-    result = np.hstack((result, mel))
+    features.extend(mel)
     
-    return result
+    return np.array(features)[:180]  # Ensure 180 features
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -55,37 +43,25 @@ def index():
         file = request.files.get('audio')
         if file and file.filename.endswith('.wav'):
             try:
-                # Save temporary file
-                temp_dir = 'temp'
-                os.makedirs(temp_dir, exist_ok=True)
-                file_path = os.path.join(temp_dir, file.filename)
-                file.save(file_path)
-                
-                # Process audio identically to training pipeline
-                data, sr = librosa.load(file_path, sr=None)
+                # In-memory processing (no temp files)
+                data, sr = librosa.load(file.stream, sr=None)
                 features = extract_feature(data, sr)
                 
-                # Ensure exact feature length (180)
-                if len(features) != 180:
-                    features = np.pad(features, (0, max(0, 180 - len(features))))[:180]
+                # Pad/truncate to exactly 180 features
+                features = np.pad(features, (0, 180))[:180]
                 
-                # Reshape for model input (batch_size=1, steps=180, channels=1)
+                # Reshape for model input
                 input_data = features.reshape(1, 180, 1)
                 
-                # Make prediction
+                # Prediction
                 preds = model.predict(input_data)
                 prediction = emotion_mapping[np.argmax(preds)]
                 
             except Exception as e:
-                prediction = f"Processing error: {str(e)}"
-            finally:
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-        else:
-            prediction = "Invalid file format - please upload a WAV file"
-    
+                prediction = f"Error: {str(e)}"
+                
     return render_template('index.html', prediction=prediction)
 
 if __name__ == "__main__":
-    app.run(debug=True)
- 
+    True
+    # app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))

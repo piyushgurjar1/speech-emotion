@@ -5,7 +5,7 @@
         "use": "@vercel/python",
         "config": {
           "maxLambdaSize": "300mb",
-          "installCommand": "pip install --no-cache-dir --no-deps -r requirements.txt"
+          "installCommand": "pip install --no-cache-dir -r requirements.txt"
         }
       }
     ],
