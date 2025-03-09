@@ -5,22 +5,8 @@
         "use": "@vercel/python",
         "config": {
           "maxLambdaSize": "300mb",
-          "includeFiles": [
-            "models/**",
-            "templates/**"
-          ]
+          "installCommand": "pip install --no-cache-dir -r requirements.txt"
         }
       }
-    ],
-    "routes": [
-      {
-        "src": "/static/(.*)",
-        "dest": "static/$1"
-      },
-      {
-        "src": "/(.*)",
-        "dest": "api/index.py"
-      }
     ]
-  }
-  
+}
