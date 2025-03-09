@@ -1,12 +1,9 @@
 import os
-import json
-import h5py
 import numpy as np
 import librosa
 from flask import Flask, render_template, request
-from tensorflow.python.keras.models import model_from_json
-# from tensorflow.keras.models import model_from_json
-# from tensorflow.python.keras.layers import regularizers
+from tensorflow.python.keras.models import load_model
+
 import tensorflow as tf
 
 app = Flask(__name__)
@@ -22,6 +19,7 @@ def custom_load_model(filepath):
                 'Adam': tf.keras.optimizers.Adam
             }
         )
+    # return load_model(filepath)
     return model
 
 # Load model (use absolute path for better reliability)
@@ -89,4 +87,5 @@ def index():
     return render_template('index.html', prediction=prediction)
 
 if __name__ == "__main__":
-    pass 
+    app.run(debug=True)
+ 

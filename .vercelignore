@@ -1,9 +1,9 @@
-**/tests
 **/__pycache__
 **/*.pyc
 **/*.pyo
-**/*.pyd
 .DS_Store
 .env
+venv/
+tests/
 *.ipynb
 *.md
